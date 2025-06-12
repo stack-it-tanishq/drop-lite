@@ -1,0 +1,35 @@
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Maven
+target/
+pom.xml
+pom.xml.asc
+*.releaseBackup
+
+# VS Code
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# Application
+application*.properties
+application*.yml
+application*.yaml
+
+# Local development
+*.db
+*.sql
+*.h2.db

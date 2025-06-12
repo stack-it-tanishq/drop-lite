@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: droplite-postgres
+    environment:
+      POSTGRES_DB: droplite
+      POSTGRES_USER: droplite
+      POSTGRES_PASSWORD: droplite_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U droplite"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PgAdmin (Optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: droplite-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@droplite.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Backend service (uncomment when backend is ready)
+  # backend:
+  #   build: ./backend
+  #   container_name: droplite-backend
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/droplite
+  #     SPRING_DATASOURCE_USERNAME: droplite
+  #     SPRING_DATASOURCE_PASSWORD: droplite_password
+  #   volumes:
+  #     - ./uploads:/app/uploads
+  #   depends_on:
+  #     - postgres
+  #   restart: unless-stopped
+
+  # Frontend service (uncomment when frontend is ready)
+  # frontend:
+  #   build: ./frontend
+  #   container_name: droplite-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     REACT_APP_API_URL: http://localhost:8080/api
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
+
+volumes:
+  postgres-data:
