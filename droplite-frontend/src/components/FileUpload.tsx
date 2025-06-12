@@ -1,13 +1,19 @@
 import { useCallback, useState } from 'react';
-import { useDropzone, FileRejection } from 'react-dropzone';
+import { useDropzone, FileRejection, Accept } from 'react-dropzone';
 import { Button, Box, Typography, CircularProgress } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
+import { useAppDispatch, useAppSelector } from '../app/hooks';
 
 interface FileUploadProps {
   onUpload: (file: File) => Promise<void>;
-  isLoading: boolean;
-  acceptedFileTypes?: string[];
-  maxSize?: number; // in bytes
+  acceptTypes?: string[];
+  maxSize?: number;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+interface FileWithPreview extends File {
+  preview?: string;
 }
 
 const defaultAcceptedTypes = [
@@ -24,8 +30,8 @@ const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   onUpload,
-  isLoading,
-  acceptedFileTypes = defaultAcceptedTypes,
+  isLoading = false,
+  acceptTypes = defaultAcceptedTypes,
   maxSize = DEFAULT_MAX_SIZE,
 }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -47,12 +53,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     [onUpload]
   );
 
+  const fileTypes = acceptTypes || defaultAcceptedTypes;
+  
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: acceptedFileTypes.reduce((acc, type) => ({
-      ...acc,
-      [type]: []
-    }), {} as Record<string, string[]>),
+    accept: fileTypes.reduce<Accept>((acc: Accept, type: string) => {
+      const [mainType, subType] = type.split('/');
+      if (subType === '*') {
+        return { ...acc, [mainType]: [] };
+      }
+      return { ...acc, [type]: [] };
+    }, {} as Accept),
     maxSize,
     multiple: false,
     onDragEnter: () => setDragActive(true),
@@ -95,7 +106,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         {isDragActive ? 'Drop the file here' : 'Drag and drop a file here, or click to select'}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Supported formats: {acceptedFileTypes.join(', ').replace(/\/\*/g, '')}
+        Supported formats: {acceptTypes.join(', ').replace(/\/\*/g, '')}
       </Typography>
       <Typography variant="body2" color="text.secondary">
         Max size: {maxSize / (1024 * 1024)}MB

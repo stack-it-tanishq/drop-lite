@@ -20,7 +20,6 @@ import {
 import {
   GetApp as DownloadIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   PictureAsPdf as PdfIcon,
   InsertDriveFile as FileIcon,
   Image as ImageIcon,
@@ -36,6 +35,7 @@ interface FileListProps {
   onDelete: (file: FileInfo) => Promise<void>;
   isLoading: boolean;
   downloadingId: number | null;
+  deletingId: number | null;
 }
 
 const getFileIcon = (contentType: string) => {
@@ -63,10 +63,11 @@ export const FileList: React.FC<FileListProps> = ({
   onDelete,
   isLoading,
   downloadingId,
+  deletingId,
 }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  // Deleting state is now managed by Redux
   const theme = useTheme();
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -78,12 +79,11 @@ export const FileList: React.FC<FileListProps> = ({
     setPage(0);
   };
 
-  const handleDelete = async (file: FileInfo) => {
+  const handleDeleteClick = async (file: FileInfo) => {
     try {
-      setDeletingId(file.id);
       await onDelete(file);
-    } finally {
-      setDeletingId(null);
+    } catch (error) {
+      console.error('Error deleting file:', error);
     }
   };
 
@@ -145,18 +145,6 @@ export const FileList: React.FC<FileListProps> = ({
                     {new Date(file.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="View">
-                      <IconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(file.path, '_blank', 'noopener,noreferrer');
-                        }}
-                        size="small"
-                        color="primary"
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                    </Tooltip>
                     <Tooltip title="Download">
                       <IconButton
                         onClick={() => onDownload(file)}
@@ -173,7 +161,7 @@ export const FileList: React.FC<FileListProps> = ({
                     </Tooltip>
                     <Tooltip title="Delete">
                       <IconButton
-                        onClick={() => handleDelete(file)}
+                        onClick={() => handleDeleteClick(file)}
                         size="small"
                         color="error"
                         disabled={deletingId === file.id}
