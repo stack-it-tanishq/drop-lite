@@ -8,7 +8,7 @@ import java.util.List;
 public class FileValidator {
     
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
-            "txt", "jpg", "jpeg", "png", "json", "pdf", "csv", "xls", "xlsx"
+            "txt", "jpg", "jpeg", "png", "json"
     );
     
     public static List<String> getAllowedExtensions() {

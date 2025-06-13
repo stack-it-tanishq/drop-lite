@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone, FileRejection, Accept } from 'react-dropzone';
-import { Button, Box, Typography, CircularProgress } from '@mui/material';
+import { Button, Box, Typography, CircularProgress, Chip } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
 
 interface FileUploadProps {
   onUpload: (file: File) => Promise<void>;
@@ -16,14 +15,17 @@ interface FileWithPreview extends File {
   preview?: string;
 }
 
+// Define accepted file extensions instead of MIME types for better compatibility
+// Only allow specific file formats
 const defaultAcceptedTypes = [
-  'image/*',
-  'application/pdf',
-  'text/plain',
-  'application/json',
-  'text/csv',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  // Images
+  '.jpg',
+  '.jpeg',
+  '.png',
+  
+  // Text and Data
+  '.txt',
+  '.json'
 ];
 
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -39,6 +41,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const onDrop = useCallback(
     async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      if (fileRejections.length > 0) {
+        const rejection = fileRejections[0];
+        if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
+          setError('File type not allowed');
+          return;
+        }
+        if (rejection.errors.some(e => e.code === 'file-too-large')) {
+          setError(`File is too large. Max size is ${maxSize / (1024 * 1024)}MB`);
+          return;
+        }
+      }
+
       const file = acceptedFiles[0];
       if (!file) return;
 
@@ -55,15 +69,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const fileTypes = acceptTypes || defaultAcceptedTypes;
   
+  // Convert file extensions to the format expected by react-dropzone
+  const acceptedFileTypes = fileTypes.reduce<Record<string, string[]>>((acc, type) => {
+    if (type.startsWith('.')) {
+      // Remove the dot for the extension
+      const ext = type.substring(1);
+      return { ...acc, [`.${ext}`]: [] };
+    }
+    // Handle wildcard types (like 'image/*')
+    return { ...acc, [type]: [] };
+  }, {});
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: fileTypes.reduce<Accept>((acc: Accept, type: string) => {
-      const [mainType, subType] = type.split('/');
-      if (subType === '*') {
-        return { ...acc, [mainType]: [] };
-      }
-      return { ...acc, [type]: [] };
-    }, {} as Accept),
+    accept: acceptedFileTypes as Accept,
     maxSize,
     multiple: false,
     onDragEnter: () => setDragActive(true),
@@ -106,7 +125,22 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         {isDragActive ? 'Drop the file here' : 'Drag and drop a file here, or click to select'}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Supported formats: {acceptTypes.join(', ').replace(/\/\*/g, '')}
+        <Box component="span" fontWeight="bold">Supported formats:</Box>
+        <Box component="span" sx={{ ml: 1, display: 'inline-flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {acceptTypes.map(ext => (
+            <Chip 
+              key={ext} 
+              label={ext} 
+              size="small" 
+              variant="outlined"
+              sx={{ 
+                fontWeight: 500,
+                bgcolor: 'background.paper',
+                borderColor: 'divider'
+              }}
+            />
+          ))}
+        </Box>
       </Typography>
       <Typography variant="body2" color="text.secondary">
         Max size: {maxSize / (1024 * 1024)}MB

@@ -17,9 +17,11 @@ import {
   Avatar,
   useTheme,
 } from '@mui/material';
+import { FilePreviewModal } from './FilePreviewModal';
 import {
   GetApp as DownloadIcon,
   Delete as DeleteIcon,
+  Visibility as ViewIcon,
   PictureAsPdf as PdfIcon,
   InsertDriveFile as FileIcon,
   Image as ImageIcon,
@@ -27,7 +29,7 @@ import {
   TableChart as TableIcon,
   Code as CodeIcon,
 } from '@mui/icons-material';
-import { FileInfo } from '../services/api';
+import { FileInfo, fileService } from '../services/api';
 
 interface FileListProps {
   files: FileInfo[];
@@ -67,6 +69,8 @@ export const FileList: React.FC<FileListProps> = ({
 }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   // Deleting state is now managed by Redux
   const theme = useTheme();
 
@@ -85,6 +89,15 @@ export const FileList: React.FC<FileListProps> = ({
     } catch (error) {
       console.error('Error deleting file:', error);
     }
+  };
+
+  const handleViewFile = (file: FileInfo) => {
+    setSelectedFile(file);
+    setPreviewOpen(true);
+  };
+  
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
   };
 
   if (isLoading && files.length === 0) {
@@ -106,9 +119,10 @@ export const FileList: React.FC<FileListProps> = ({
   }
 
   return (
-    <Paper elevation={2} sx={{ width: '100%', overflow: 'hidden' }}>
-      <TableContainer sx={{ maxHeight: 600 }}>
-        <Table stickyHeader>
+    <>
+      <Paper elevation={2} sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer sx={{ maxHeight: 600 }}>
+          <Table stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>File</TableCell>
@@ -144,7 +158,17 @@ export const FileList: React.FC<FileListProps> = ({
                   <TableCell>
                     {new Date(file.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    <Tooltip title="View">
+                      <IconButton
+                        onClick={() => handleViewFile(file)}
+                        size="small"
+                        color="primary"
+                        sx={{ mr: 1 }}
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Download">
                       <IconButton
                         onClick={() => onDownload(file)}
@@ -189,6 +213,12 @@ export const FileList: React.FC<FileListProps> = ({
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
     </Paper>
+    <FilePreviewModal
+      open={previewOpen}
+      onClose={handleClosePreview}
+      file={selectedFile}
+    />
+    </>
   );
 };
 

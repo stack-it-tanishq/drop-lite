@@ -4,18 +4,8 @@
   "icons": [
     {
       "src": "logo-d.svg",
-      "sizes": "32x32",
+      "sizes": "32x32 16x16",
       "type": "image/svg+xml"
-    },
-    {
-      "src": "logo-d.svg",
-      "type": "image/svg+xml",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo-d.svg",
-      "type": "image/svg+xml",
-      "sizes": "512x512"
     }
   ],
   "start_url": ".",
