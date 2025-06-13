@@ -1,0 +1,15 @@
+{
+  "short_name": "DropLite",
+  "name": "DropLite - Simple File Sharing",
+  "icons": [
+    {
+      "src": "logo-d.svg",
+      "sizes": "32x32 16x16",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff"
+}

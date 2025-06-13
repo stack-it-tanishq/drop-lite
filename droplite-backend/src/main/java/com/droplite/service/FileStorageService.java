@@ -13,4 +13,5 @@ public interface FileStorageService {
     List<FileEntity> getAllFiles();
     Resource loadFileContent(Long id);
     void deleteFile(Long id);
+    FileEntity getFileById(Long id);
 }

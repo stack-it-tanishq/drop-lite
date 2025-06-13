@@ -157,4 +157,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new FileStorageException("Could not delete file " + fileEntity.getFilename(), ex);
         }
     }
+    
+    @Override
+    public FileEntity getFileById(Long id) {
+        return fileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("File not found with id " + id));
+    }
 }

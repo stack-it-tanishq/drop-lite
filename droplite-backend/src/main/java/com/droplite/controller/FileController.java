@@ -1,16 +1,13 @@
 package com.droplite.controller;
 
 import com.droplite.exception.FileStorageException;
-import com.droplite.exception.ResourceNotFoundException;
 import com.droplite.model.FileEntity;
 import com.droplite.service.FileStorageService;
 import com.droplite.util.FileValidator;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -76,15 +73,41 @@ public class FileController {
 
     @GetMapping("/view/{id}")
     public ResponseEntity<Resource> viewFile(@PathVariable Long id) {
+        // Get the file entity to access its content type and filename
+        FileEntity fileEntity = fileStorageService.getFileById(id);
         Resource resource = fileStorageService.loadFileContent(id);
         
-        // Determine content type
-        String contentType = "application/octet-stream";
+        // Determine content type based on file extension
+        String contentType = fileEntity.getContentType();
+        String filename = fileEntity.getFilename().toLowerCase();
         
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
-                .body(resource);
+        // Override content type for common text-based formats
+        if (filename.endsWith(".txt")) {
+            contentType = "text/plain; charset=utf-8";
+        } else if (filename.endsWith(".json")) {
+            contentType = "application/json; charset=utf-8";
+        } else if (filename.endsWith(".csv")) {
+            contentType = "text/csv; charset=utf-8";
+        } else if (filename.endsWith(".xml")) {
+            contentType = "application/xml; charset=utf-8";
+        } else if (filename.endsWith(".html")) {
+            contentType = "text/html; charset=utf-8";
+        } else if (filename.endsWith(".css")) {
+            contentType = "text/css; charset=utf-8";
+        } else if (filename.endsWith(".js")) {
+            contentType = "application/javascript; charset=utf-8";
+        }
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.set("Content-Disposition", "inline; filename=\"" + fileEntity.getOriginalFilename() + "\"");
+        
+        // Add CORS headers to allow embedding
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+        headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        
+        return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
