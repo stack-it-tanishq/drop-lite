@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -20,6 +18,41 @@ services:
       timeout: 5s
       retries: 5
 
+  # Backend Service
+  backend:
+    build:
+      context: ./droplite-backend
+      dockerfile: Dockerfile
+    container_name: droplite-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/droplite
+      SPRING_DATASOURCE_USERNAME: droplite
+      SPRING_DATASOURCE_PASSWORD: droplite_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      FILE_UPLOAD_DIR: /app/uploads
+    volumes:
+      - file-uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./droplite-frontend
+      dockerfile: Dockerfile
+    container_name: droplite-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8080/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   # PgAdmin (Optional - for database management)
   pgadmin:
     image: dpage/pgadmin4
@@ -33,33 +66,8 @@ services:
       - postgres
     restart: unless-stopped
 
-  # Backend service (uncomment when backend is ready)
-  # backend:
-  #   build: ./backend
-  #   container_name: droplite-backend
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/droplite
-  #     SPRING_DATASOURCE_USERNAME: droplite
-  #     SPRING_DATASOURCE_PASSWORD: droplite_password
-  #   volumes:
-  #     - ./uploads:/app/uploads
-  #   depends_on:
-  #     - postgres
-  #   restart: unless-stopped
 
-  # Frontend service (uncomment when frontend is ready)
-  # frontend:
-  #   build: ./frontend
-  #   container_name: droplite-frontend
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     REACT_APP_API_URL: http://localhost:8080/api
-  #   depends_on:
-  #     - backend
-  #   restart: unless-stopped
 
 volumes:
   postgres-data:
+  file-uploads:
