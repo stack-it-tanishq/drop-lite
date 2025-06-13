@@ -10,8 +10,9 @@ import {
   Paper,
   TextField,
   Alert,
+  Button,
 } from '@mui/material';
-import { Close as CloseIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Download as DownloadIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import { FileInfo, fileService } from '../services/api';
 
 interface FilePreviewModalProps {
@@ -78,43 +79,53 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     } 
     // Handle text and json files
     else if (['txt', 'json'].includes(fileExt || '')) {
+      const viewInNewTab = () => {
+        window.open(fileService.viewFile(file.id), '_blank', 'noopener,noreferrer');
+      };
+
       return (
-        <Box sx={{ height: '70vh', width: '100%', overflow: 'auto', p: 2 }}>
-          {isLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Alert severity="error">
-              {error}
-              <Box mt={1}>
-                <a 
-                  href={fileService.viewFile(file.id)} 
-                  download={file.originalFilename}
-                  style={{ color: 'inherit', textDecoration: 'none' }}
-                >
-                  <Box display="flex" alignItems="center" mt={1}>
-                    <DownloadIcon fontSize="small" sx={{ mr: 0.5 }} />
-                    <span>Download file instead</span>
-                  </Box>
-                </a>
-              </Box>
-            </Alert>
-          ) : (
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'monospace',
-                bgcolor: 'background.default'
-              }}
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '70vh', width: '100%' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1, gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<OpenInNewIcon />}
+              onClick={viewInNewTab}
+              sx={{ textTransform: 'none' }}
             >
-              {fileContent}
-            </Paper>
-          )}
+              Open in new tab
+            </Button>
+          </Box>
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+            {isLoading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error">
+                {error}
+              </Alert>
+            ) : (
+              <Paper 
+                variant="outlined" 
+                component="pre"
+                sx={{ 
+                  p: 2, 
+                  height: '100%', 
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace',
+                  bgcolor: 'background.default',
+                  m: 0,
+                  '&:hover': {
+                    boxShadow: 1
+                  }
+                }}
+              >
+                {fileContent || 'No content to display'}
+              </Paper>
+            )}
+          </Box>
         </Box>
       );
     } else {
