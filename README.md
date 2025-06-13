@@ -52,10 +52,21 @@ http://localhost:3000
 
 ### Running in development mode
 
-1. **Backend**:
+1. **Backend (Gradle)**:
    ```bash
    cd droplite-backend
-   ./mvnw spring-boot:run
+   
+   # On Unix/macOS
+   ./gradlew bootRun
+   
+   # On Windows
+   .\gradlew.bat bootRun
+   ```
+
+   To build the backend JAR:
+   ```bash
+   ./gradlew build
+   java -jar build/libs/droplite-backend-0.0.1-SNAPSHOT.jar
    ```
 
 2. **Frontend**:
@@ -65,13 +76,29 @@ http://localhost:3000
    npm start
    ```
 
+### Development with Docker
+
+To run the application with Docker Compose (recommended for development):
+
+```bash
+# Start all services
+docker-compose up --build
+
+# Stop all services
+docker-compose down
+
+# Rebuild and restart a specific service (e.g., backend)
+docker-compose up --build -d droplite-backend
+```
+
 ### Environment Variables
 
 #### Backend
-- `SPRING_DATASOURCE_URL`: Database connection URL
-- `SPRING_DATASOURCE_USERNAME`: Database username
-- `SPRING_DATASOURCE_PASSWORD`: Database password
-- `FILE_UPLOAD_DIR`: Directory to store uploaded files
+- `SPRING_DATASOURCE_URL`: Database connection URL (default: `jdbc:postgresql://postgres:5432/droplite`)
+- `SPRING_DATASOURCE_USERNAME`: Database username (default: `postgres`)
+- `SPRING_DATASOURCE_PASSWORD`: Database password (default: `postgres`)
+- `FILE_UPLOAD_DIR`: Directory to store uploaded files (default: `./uploads`)
+- `SERVER_PORT`: Port to run the backend server (default: `8080`)
 
 #### Frontend
 - `REACT_APP_API_URL`: URL of the backend API
