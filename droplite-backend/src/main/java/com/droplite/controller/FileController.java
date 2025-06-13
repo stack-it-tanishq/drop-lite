@@ -22,15 +22,21 @@ public class FileController {
 
     private final FileStorageService fileStorageService;
 
+    /**
+     * Handles file upload with validation
+     * @param file The file to be uploaded
+     * @return ResponseEntity containing the saved file metadata
+     * @throws FileStorageException if file validation fails
+     */
     @PostMapping("/upload")
     public ResponseEntity<FileEntity> uploadFile(@RequestParam("file") MultipartFile file) {
-        // Validate file type
+        // Validate file type against allowed extensions
         if (!FileValidator.isValidFileType(file)) {
             throw new FileStorageException("File type not allowed. Allowed types: " + 
                 String.join(", ", FileValidator.getAllowedExtensions()));
         }
 
-        // Validate file size
+        // Check if file size is within limits
         if (!FileValidator.isValidFileSize(file)) {
             throw new FileStorageException("File size exceeds the maximum limit (10MB)");
         }
@@ -38,7 +44,6 @@ public class FileController {
         try {
             FileEntity fileEntity = fileStorageService.store(file);
             
-            // Generate download URL
             String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/files/download/")
                     .path(fileEntity.getId().toString())
@@ -71,17 +76,23 @@ public class FileController {
                 .body(resource);
     }
 
+    /**
+     * Serves file content with appropriate content type for inline viewing
+     * @param id The ID of the file to view
+     * @return ResponseEntity containing the file resource with proper headers
+     */
     @GetMapping("/view/{id}")
     public ResponseEntity<Resource> viewFile(@PathVariable Long id) {
-        // Get the file entity to access its content type and filename
+        // Retrieve file metadata and content
         FileEntity fileEntity = fileStorageService.getFileById(id);
         Resource resource = fileStorageService.loadFileContent(id);
         
-        // Determine content type based on file extension
+        // Initialize content type from file metadata
         String contentType = fileEntity.getContentType();
         String filename = fileEntity.getFilename().toLowerCase();
         
-        // Override content type for common text-based formats
+        // Override content types for text-based formats to ensure proper browser rendering
+        // and set charset to UTF-8 for proper character encoding
         if (filename.endsWith(".txt")) {
             contentType = "text/plain; charset=utf-8";
         } else if (filename.endsWith(".json")) {
@@ -102,7 +113,7 @@ public class FileController {
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.set("Content-Disposition", "inline; filename=\"" + fileEntity.getOriginalFilename() + "\"");
         
-        // Add CORS headers to allow embedding
+        // CORS headers for cross-origin embedding
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
         headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");

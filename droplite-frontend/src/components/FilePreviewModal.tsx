@@ -30,18 +30,21 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch file content when the modal is opened with a file
   useEffect(() => {
     if (!file) return;
     
     const fetchFileContent = async () => {
+      // Skip fetching for binary files that will be displayed as images or in iframes
       if (file.contentType.startsWith('image/') || file.contentType.includes('pdf')) {
-        return; // Don't fetch content for images and PDFs
+        return;
       }
       
       setIsLoading(true);
       setError(null);
       
       try {
+        // Fetch the file content as text for preview
         const response = await fetch(fileService.viewFile(file.id));
         if (!response.ok) throw new Error('Failed to load file content');
         const text = await response.text();
@@ -59,13 +62,17 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 
   if (!file) return null;
 
+  /**
+   * Renders the appropriate preview component based on file type
+   * @returns JSX element for the file preview
+   */
   const getPreviewContent = () => {
     if (!file) return null;
 
-    // Get file extension
+    // Extract file extension for type-based rendering
     const fileExt = file.originalFilename.split('.').pop()?.toLowerCase();
     
-    // Handle images (jpg, jpeg, png)
+    // Handle image previews (JPEG, PNG)
     if (['jpg', 'jpeg', 'png'].includes(fileExt || '')) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
@@ -77,8 +84,9 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         </Box>
       );
     } 
-    // Handle text and json files
+    // Handle text and JSON files with syntax highlighting
     else if (['txt', 'json'].includes(fileExt || '')) {
+      // Open file in new tab for better viewing experience
       const viewInNewTab = () => {
         window.open(fileService.viewFile(file.id), '_blank', 'noopener,noreferrer');
       };
@@ -129,7 +137,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         </Box>
       );
     } else {
-      // For unsupported preview types, show a message and download link
+      // Unsupported file type
       return (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" gutterBottom>

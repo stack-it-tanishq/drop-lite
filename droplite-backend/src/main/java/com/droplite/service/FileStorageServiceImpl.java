@@ -18,18 +18,33 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Implementation of {@link FileStorageService} that stores files on the local filesystem
+ * and maintains file metadata in a database.
+ * 
+ * <p>Files are stored with UUID-based filenames to prevent naming conflicts, while
+ * the original filenames are preserved in the database for user reference.</p>
+ */
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
     private final FileRepository fileRepository;
+    // Base directory where uploaded files are stored
     private final Path fileStorageLocation;
 
+    /**
+     * Initializes the file storage service and ensures the upload directory exists.
+     *
+     * @param fileRepository The repository for file metadata operations
+     * @throws FileStorageException if the upload directory cannot be created
+     */
     public FileStorageServiceImpl(FileRepository fileRepository) {
         this.fileRepository = fileRepository;
-        this.fileStorageLocation = Paths.get("uploads")
-                .toAbsolutePath().normalize();
+        // Initialize the base directory for file storage
+        this.fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
         
         try {
+            // Create the upload directory if it doesn't exist
             System.out.println("Creating upload directory: " + this.fileStorageLocation);
             Files.createDirectories(this.fileStorageLocation);
             System.out.println("Upload directory exists: " + Files.exists(this.fileStorageLocation));
@@ -45,10 +60,13 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public FileEntity store(MultipartFile file) throws IOException {
-        // Log file info
+        // Log file information for debugging
         System.out.println("Processing file upload: " + file.getOriginalFilename());
         System.out.println("Content type: " + file.getContentType());
         System.out.println("File size: " + file.getSize());
+        
+        // Note: In production, consider using a proper logging framework (e.g., SLF4J)
+        // instead of System.out.println
         
         // Validate file
         if (!FileValidator.isValidFileType(file)) {
@@ -115,20 +133,27 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public Resource loadAsResource(Long id) {
+        // Retrieve file metadata from database
         FileEntity fileEntity = fileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("File not found with id " + id));
 
         try {
+            // Convert stored path to a Path object
             Path filePath = Path.of(fileEntity.getPath());
+            // Create a URL resource for the file
             Resource resource = new UrlResource(filePath.toUri());
             
-            if (resource.exists()) {
+            // Verify the file exists and is readable
+            if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
+                // File exists in DB but not on filesystem - log and throw
+                System.err.println("File exists in database but not on filesystem: " + fileEntity.getPath());
                 throw new ResourceNotFoundException("File not found " + fileEntity.getFilename());
             }
         } catch (MalformedURLException ex) {
-            throw new ResourceNotFoundException("File not found " + fileEntity.getFilename(), ex);
+            // Handle invalid file path format
+            throw new ResourceNotFoundException("Invalid file path " + fileEntity.getFilename(), ex);
         }
     }
 
@@ -145,16 +170,29 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteFile(Long id) {
+        // First check if file exists in database
         FileEntity fileEntity = fileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("File not found with id " + id));
         
         try {
-            // Delete file from filesystem
-            Files.deleteIfExists(Path.of(fileEntity.getPath()));
-            // Delete from database
+            // Delete the physical file from storage
+            Path filePath = Path.of(fileEntity.getPath());
+            boolean fileDeleted = Files.deleteIfExists(filePath);
+            
+            if (!fileDeleted) {
+                System.err.println("File not found on filesystem during deletion: " + filePath);
+                // Continue with DB deletion to maintain consistency
+            }
+            
+            // Delete the file metadata from database
             fileRepository.delete(fileEntity);
+            
         } catch (IOException ex) {
-            throw new FileStorageException("Could not delete file " + fileEntity.getFilename(), ex);
+            // Log the error and wrap in a more specific exception
+            String errorMsg = String.format("Failed to delete file %s (ID: %d): %s", 
+                fileEntity.getFilename(), id, ex.getMessage());
+            System.err.println(errorMsg);
+            throw new FileStorageException(errorMsg, ex);
         }
     }
     
