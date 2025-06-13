@@ -15,15 +15,11 @@ interface FileWithPreview extends File {
   preview?: string;
 }
 
-// Define accepted file extensions instead of MIME types for better compatibility
-// Only allow specific file formats
+// Default accepted file extensions
 const defaultAcceptedTypes = [
-  // Images
   '.jpg',
   '.jpeg',
   '.png',
-  
-  // Text and Data
   '.txt',
   '.json'
 ];
@@ -39,44 +35,53 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onDrop = useCallback(
-    async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      if (fileRejections.length > 0) {
-        const rejection = fileRejections[0];
-        if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
-          setError('File type not allowed');
-          return;
-        }
-        if (rejection.errors.some(e => e.code === 'file-too-large')) {
-          setError(`File is too large. Max size is ${maxSize / (1024 * 1024)}MB`);
-          return;
-        }
+  // Handle file drop or selection
+const onDrop = useCallback(
+  async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+    // Process any file rejection errors first
+    if (fileRejections.length > 0) {
+      const rejection = fileRejections[0];
+      // Handle invalid file type error
+      if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
+        setError('File type not allowed');
+        return;
       }
-
-      const file = acceptedFiles[0];
-      if (!file) return;
-
-      try {
-        setError(null);
-        await onUpload(file);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to upload file';
-        setError(errorMessage);
+      // Handle file size limit error
+      if (rejection.errors.some(e => e.code === 'file-too-large')) {
+        setError(`File is too large. Max size is ${maxSize / (1024 * 1024)}MB`);
+        return;
       }
-    },
-    [onUpload]
-  );
+    }
+
+    // Process the first accepted file (multiple uploads not supported)
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    try {
+      setError(null);
+      // Call the parent component's upload handler
+      await onUpload(file);
+    } catch (err: unknown) {
+      // Handle any upload errors with a user-friendly message
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload file';
+      setError(errorMessage);
+    }
+  },
+  [onUpload, maxSize] // Dependencies for useCallback
+);
 
   const fileTypes = acceptTypes || defaultAcceptedTypes;
   
-  // Convert file extensions to the format expected by react-dropzone
+  // Convert file type array into the format expected by react-dropzone
+  // Example: ['.jpg', '.png'] -> { '.jpg': [], '.png': [] }
   const acceptedFileTypes = fileTypes.reduce<Record<string, string[]>>((acc, type) => {
+    // Handle both formats: '.ext' and 'image/*'
     if (type.startsWith('.')) {
-      // Remove the dot for the extension
+      // Extract extension without the dot and create the expected format
       const ext = type.substring(1);
       return { ...acc, [`.${ext}`]: [] };
     }
-    // Handle wildcard types (like 'image/*')
+    // Keep MIME types as they are
     return { ...acc, [type]: [] };
   }, {});
 
